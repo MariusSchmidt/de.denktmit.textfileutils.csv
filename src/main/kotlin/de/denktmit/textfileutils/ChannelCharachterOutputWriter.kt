@@ -1,25 +1,38 @@
 package de.denktmit.textfileutils
 
 import java.io.OutputStream
+import java.io.Writer
+import java.nio.CharBuffer
+import java.nio.channels.Channels
 import java.nio.charset.Charset
 
 internal class ChannelCharachterOutputWriter(
     override val charset: Charset = Charsets.UTF_8,
     val bufferSize: Int = 8192
-): CharachterOutputWriter {
+): CharacterOutputWriter {
 
-    override fun write(outputStream: OutputStream, characterChunks: Sequence<Array<CharArray>>) {
-        TODO()
-//        Channels.newWriter(Channels.newChannel(outputStream), Charsets.UTF_8.name()).use { writer ->
-//            val outputBuffer = CharBuffer.allocate(bufferSize)
-//            characterChunks.forEach { charSequence ->
-//                if (outputBuffer.remaining() >= charSequence.length) {
-//                    outputBuffer.put()
-//                }
-//                val (charArray, bytesAvailable) = chunk
-//                writer.write(charArray, 0, bytesAvailable)
-//            }
-//        }
+    override fun write(outputStream: OutputStream, chars: Sequence<Char>) {
+        val charBuffer = CharBuffer.allocate(bufferSize)
+        Channels.newWriter(Channels.newChannel(outputStream), charset.name()).use { writer ->
+            chars.forEach { char ->
+                if (charBuffer.hasRemaining()) {
+                    charBuffer.append(char)
+                } else {
+                    writeFromBuffer(charBuffer, writer)
+                }
+            }
+            if (charBuffer.isNotEmpty()) {
+                writeFromBuffer(charBuffer, writer)
+            }
+        }
+    }
+
+    private fun writeFromBuffer(charBuffer: CharBuffer, writer: Writer) {
+        charBuffer.flip()
+        val charArray = CharArray(charBuffer.remaining())
+        charBuffer.get(charArray)
+        charBuffer.clear()
+        writer.write(charArray)
     }
 
 }

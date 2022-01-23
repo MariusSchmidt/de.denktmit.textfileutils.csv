@@ -154,7 +154,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>libs/</classpathPrefix>
-                            <mainClass>de.denktmit.textfileutils.CsvReaderApplicationKt</mainClass>
+                            <mainClass>de.denktmit.textfileutils.CsvReaderApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -164,7 +164,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>de.denktmit.textfileutils.CsvReaderApplicationKt</mainClass>
+                            <mainClass>de.denktmit.textfileutils.CsvReaderApplication</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

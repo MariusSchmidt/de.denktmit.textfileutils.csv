@@ -26,7 +26,7 @@ internal class ChannelCharacterInputReader(
     }
 
     override fun read(inputStream: InputStream): Sequence<Char> = bulkRead(inputStream).flatMap { (chars, charCount) ->
-        chars.sliceArray(0..charCount).asSequence()
+        chars.sliceArray(0 until charCount).asSequence()
     }
 
     private suspend fun SequenceScope<Pair<CharArray, Int>>.readToBufferAndPublish(reader: Reader) {

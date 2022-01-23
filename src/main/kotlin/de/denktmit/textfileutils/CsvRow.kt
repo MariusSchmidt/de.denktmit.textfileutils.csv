@@ -18,6 +18,19 @@ class CsvRow(val fields: List<CsvField>) {
         return "CsvLine(fields=$fields)"
     }
 
+    fun chars(delimiter: Char, eol: String, enclosure: Char?): Sequence<Char> {
+        return sequence {
+            for (field in fields) {
+                yieldAll(field.chars(enclosure))
+                if (field != fields.last()) {
+                    yield(delimiter)
+                } else {
+                    yieldAll(eol.asSequence())
+                }
+            }
+        }
+    }
+
 }
 
 class CsvField(
@@ -42,6 +55,14 @@ class CsvField(
 
     override fun toString(): String {
         return "CsvField(data=$data, enclosureType=$enclosureType)"
+    }
+
+    fun chars(enclosure: Char?): Sequence<Char> {
+        return if (enclosure != null && enclosureType == EnclosureType.ENCLOSED) {
+            sequenceOf(enclosure) + data.asSequence() + sequenceOf(enclosure)
+        } else {
+            data.asSequence()
+        }
     }
 
 }

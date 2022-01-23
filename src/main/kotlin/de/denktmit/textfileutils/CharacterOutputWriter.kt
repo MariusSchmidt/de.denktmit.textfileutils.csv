@@ -3,12 +3,14 @@ package de.denktmit.textfileutils
 import java.io.OutputStream
 import java.nio.charset.Charset
 
-interface CharachterOutputWriter {
+interface CharacterOutputWriter {
 
     val charset: Charset
         get() = Charsets.UTF_8
 
-    fun write(outputStream: OutputStream, characterChunks: Sequence<Array<CharArray>>) {
+    fun write(outputStream: OutputStream, chars: Sequence<Char>) {
+
+
         TODO()
 //        Channels.newWriter(Channels.newChannel(outputStream), Charsets.UTF_8.name()).use { writer ->
 //            val outputBuffer = CharBuffer.allocate(bufferSize)
