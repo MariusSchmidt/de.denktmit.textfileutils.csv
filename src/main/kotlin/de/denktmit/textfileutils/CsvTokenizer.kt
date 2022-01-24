@@ -16,96 +16,96 @@ internal class CsvTokenizer(
     }
 
     private fun handleEachCharacter(
-        tokenizerState: TokenizerState,
-        char: Char
+        state: TokenizerState,
+        c: Char
     ): Sequence<Token> {
         return sequence {
             when {
-                tokenizerState.enclosed && tokenizerState.escaped -> handleEscapedChar(tokenizerState, char)
-                tokenizerState.enclosed && char == escapeSign -> handleEscapeNext(tokenizerState, char)
-                tokenizerState.enclosed && char == enclosure -> handleEnclosureClose(tokenizerState)
-                tokenizerState.enclosed -> tokenizerState.dataBuffer.append(char)
-                char == eol[tokenizerState.eolBuffer.length] -> handleEndOfLine(tokenizerState, char)
-                char == delimiter -> handleDelimiter(tokenizerState)
-                char == enclosure && tokenizerState.dataBuffer.isEmpty() -> handleEnclosureOpen(tokenizerState)
-                else -> handleCharacter(tokenizerState, char)
+                state.enclosed && state.escaped -> handleEscapedChar(state, c)
+                state.enclosed && c == escapeSign -> handleEscapeNext(state, c)
+                state.enclosed && c == enclosure -> handleEnclosureClose(state)
+                state.enclosed -> state.dataBuffer.append(c)
+                c == eol[state.eolBuffer.length] -> handleEndOfLine(state, c)
+                c == delimiter -> handleDelimiter(state)
+                c == enclosure && state.dataBuffer.isEmpty() -> handleEnclosureOpen(state)
+                else -> handleCharacter(state, c)
             }
         }
     }
 
-    private fun handleEscapedChar(tokenizerState: TokenizerState, char: Char) {
-        tokenizerState.dataBuffer.append(char)
-        tokenizerState.escaped = false
+    private fun handleEscapedChar(state: TokenizerState, c: Char) {
+        state.dataBuffer.append(c)
+        state.escaped = false
     }
 
-    private fun handleEscapeNext(tokenizerState: TokenizerState, char: Char) {
-        tokenizerState.dataBuffer.append(char)
-        tokenizerState.escaped = true
+    private fun handleEscapeNext(state: TokenizerState, c: Char) {
+        state.dataBuffer.append(c)
+        state.escaped = true
     }
 
-    private suspend fun SequenceScope<Token>.handleEnclosureClose(tokenizerState: TokenizerState) {
-        yieldField(tokenizerState)
+    private suspend fun SequenceScope<Token>.handleEnclosureClose(state: TokenizerState) {
+        yieldField(state)
         yield(ENCLOSURE)
-        tokenizerState.enclosed = false
-        tokenizerState.lastToken = ENCLOSURE
+        state.enclosed = false
+        state.previousTokenAdded = ENCLOSURE
     }
 
-    private suspend fun SequenceScope<Token>.handleEndOfLine(tokenizerState: TokenizerState, char: Char) {
-        tokenizerState.eolBuffer.append(char)
-        if (tokenizerState.eolBuffer.length == eol.length) {
-            if (tokenizerState.lastToken != ENCLOSURE) {
-                yieldField(tokenizerState)
+    private suspend fun SequenceScope<Token>.handleEndOfLine(state: TokenizerState, c: Char) {
+        state.eolBuffer.append(c)
+        if (state.eolBuffer.length == eol.length) {
+            if (state.previousTokenAdded != ENCLOSURE) {
+                yieldField(state)
             }
             yield(EOL)
-            tokenizerState.lastToken = EOL
-            clearEolBuffer(tokenizerState, false)
+            state.previousTokenAdded = EOL
+            clearEolBuffer(state, false)
         }
     }
 
-    private suspend fun SequenceScope<Token>.handleDelimiter(tokenizerState: TokenizerState) {
-        if (tokenizerState.lastToken != ENCLOSURE) {
-            yieldField(tokenizerState)
+    private suspend fun SequenceScope<Token>.handleDelimiter(state: TokenizerState) {
+        if (state.previousTokenAdded != ENCLOSURE) {
+            yieldField(state)
         }
         yield(DELIMITER)
-        tokenizerState.lastToken = DELIMITER
-        clearEolBuffer(tokenizerState, true)
+        state.previousTokenAdded = DELIMITER
+        clearEolBuffer(state, true)
     }
 
-    private suspend fun SequenceScope<Token>.handleEnclosureOpen(tokenizerState: TokenizerState) {
+    private suspend fun SequenceScope<Token>.handleEnclosureOpen(state: TokenizerState) {
         yield(ENCLOSURE)
-        tokenizerState.enclosed = true;
-        tokenizerState.lastToken = ENCLOSURE
-        clearEolBuffer(tokenizerState, true)
+        state.enclosed = true;
+        state.previousTokenAdded = ENCLOSURE
+        clearEolBuffer(state, true)
     }
 
-    private fun handleCharacter(tokenizerState: TokenizerState, char: Char) {
-        tokenizerState.dataBuffer.append(char)
-        clearEolBuffer(tokenizerState, true)
+    private fun handleCharacter(state: TokenizerState, c: Char) {
+        state.dataBuffer.append(c)
+        clearEolBuffer(state, true)
     }
 
-    private suspend fun SequenceScope<Token>.handleEndOfFile(tokenizerState: TokenizerState) {
-        clearEolBuffer(tokenizerState, true)
-        if (tokenizerState.dataBuffer.isNotEmpty() || tokenizerState.lastToken == DELIMITER) {
-            yieldField(tokenizerState)
+    private suspend fun SequenceScope<Token>.handleEndOfFile(state: TokenizerState) {
+        clearEolBuffer(state, true)
+        if (state.dataBuffer.isNotEmpty() || state.previousTokenAdded == DELIMITER) {
+            yieldField(state)
         }
         yield(EOF)
     }
 
-    private fun clearEolBuffer(tokenizerState: TokenizerState, appendToFieldBuffer: Boolean) {
-        if (tokenizerState.eolBuffer.isNotEmpty()) {
+    private fun clearEolBuffer(state: TokenizerState, appendToFieldBuffer: Boolean) {
+        if (state.eolBuffer.isNotEmpty()) {
             if (appendToFieldBuffer) {
-                tokenizerState.dataBuffer.append(tokenizerState.eolBuffer)
+                state.dataBuffer.append(state.eolBuffer)
             }
-            tokenizerState.eolBuffer.clear()
+            state.eolBuffer.clear()
         }
     }
 
-    private suspend fun SequenceScope<Token>.yieldField(tokenizerState: TokenizerState) {
-        if (tokenizerState.dataBuffer.isEmpty()) {
+    private suspend fun SequenceScope<Token>.yieldField(state: TokenizerState) {
+        if (state.dataBuffer.isEmpty()) {
             yield(EMPTYDATA)
         } else {
-            yield(DATA(tokenizerState.dataBuffer.toString()))
-            tokenizerState.dataBuffer.clear()
+            yield(DATA(state.dataBuffer.toString()))
+            state.dataBuffer.clear()
         }
     }
 
@@ -115,7 +115,7 @@ internal class CsvTokenizer(
     ) {
         var enclosed: Boolean = false
         var escaped: Boolean = false
-        var lastToken: Token? = null
+        var previousTokenAdded: Token? = null
         val dataBuffer: StringBuilder = StringBuilder(averageFieldCharCount)
         val eolBuffer: StringBuilder = StringBuilder(eol.length)
     }
