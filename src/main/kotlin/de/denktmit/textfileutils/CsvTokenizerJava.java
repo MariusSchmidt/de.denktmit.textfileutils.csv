@@ -1,7 +1,6 @@
 package de.denktmit.textfileutils;
 
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Queue;
 import java.util.stream.Stream;
 
@@ -28,20 +27,20 @@ public class CsvTokenizerJava {
     }
 
     public Stream<Token[]> tokenize(Stream<char[]> charChunks) {
-        return charChunks.map(chars -> tokenize(chars));
+        TokenizerState state = new TokenizerState();
+        return charChunks.map(charChunk -> tokenize(state, charChunk));
         //Stream<Token[]> endOfFileStream = Stream.generate(() -> handleEndOfFile(state));
         //return Stream.concat(tokenizedStream, endOfFileStream);
     }
 
-    public Token[] tokenize(char[] charChunk) {
-        TokenizerState state = new TokenizerState();
+    private Token[] tokenize(TokenizerState state , char[] charChunk) {
         for (char c : charChunk) {
             tokenize(state, c);
         }
         return state.getTokens();
     }
 
-    private Token[] tokenize(TokenizerState state, char c) {
+    private void tokenize(TokenizerState state, char c) {
         if (state.enclosed && state.escaped) { handleEscapedChar(state, c); }
         else if (state.enclosed && c == escapeSign) { handleEscapeNext(state, c); }
         else if (state.enclosed && c == enclosure) { handleEnclosureClose(state, c); }
@@ -50,7 +49,6 @@ public class CsvTokenizerJava {
         else if (c == delimiter) { handleDelimiter(state, c); }
         else if (c == enclosure && state.dataBuffer.length() == 0) { handleEnclosureOpen(state, c); }
         else { handleCharacter(state, c);}
-        return state.tokenBuffer.toArray(new Token[0]);
     }
 
     private void handleEscapedChar(TokenizerState state, char c) {
